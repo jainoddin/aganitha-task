@@ -36,13 +36,18 @@ export default async function handler(req, res) {
     console.error('DATABASE_URL not found in environment');
     console.error('Current working directory:', process.cwd());
     console.error('NODE_ENV:', process.env.NODE_ENV);
+    console.error('All env vars:', Object.keys(process.env).sort());
     return res.status(500).json({ 
       error: 'Database not configured. Please set DATABASE_URL environment variable.',
-      hint: 'Make sure .env.local exists and restart the dev server',
+      hint: process.env.NODE_ENV === 'production' 
+        ? 'For Vercel: Go to Settings → Environment Variables → Add DATABASE_URL → Select Production → Save → Redeploy'
+        : 'Make sure .env.local exists and restart the dev server',
       debug: {
         cwd: process.cwd(),
         nodeEnv: process.env.NODE_ENV,
-        hasEnvFile: fs.existsSync(path.join(process.cwd(), '.env.local'))
+        hasEnvFile: fs.existsSync(path.join(process.cwd(), '.env.local')),
+        isVercel: !!process.env.VERCEL,
+        availableEnvVars: Object.keys(process.env).filter(k => k.includes('DATABASE') || k.includes('POSTGRES')).sort()
       }
     });
   }
