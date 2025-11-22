@@ -70,22 +70,25 @@ export default async function handler(req, res) {
         if (!isValidCode(code)) {
           return res.status(400).json({ error: 'Code must be 6-8 alphanumeric characters' });
         }
+        // Check if custom code exists
+        const existing = await pool.query('SELECT id FROM links WHERE code = $1', [code]);
+        if (existing.rows.length > 0) {
+          return res.status(409).json({ error: 'Code already exists' });
+        }
       } else {
-        // Generate random code
+        // Generate random code and ensure uniqueness
         let attempts = 0;
+        let isUnique = false;
         do {
           code = generateCode();
           attempts++;
           if (attempts > 10) {
             return res.status(500).json({ error: 'Failed to generate unique code' });
           }
-        } while (false); // Will check uniqueness in DB
-      }
-
-      // Check if code exists
-      const existing = await pool.query('SELECT id FROM links WHERE code = $1', [code]);
-      if (existing.rows.length > 0) {
-        return res.status(409).json({ error: 'Code already exists' });
+          // Check if code exists
+          const existing = await pool.query('SELECT id FROM links WHERE code = $1', [code]);
+          isUnique = existing.rows.length === 0;
+        } while (!isUnique);
       }
 
       // Insert new link
